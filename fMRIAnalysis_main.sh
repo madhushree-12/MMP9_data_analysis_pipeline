@@ -18,7 +18,7 @@ cd $root_location/RawData
 # xlsx2csv Animal_Experiments_Sequences_v2.xlsx Animal_Experiments_Sequences_v2.csv
 
 # Read the CSV file line by line, skipping the header
-awk -F ',' 'NR>1 {print $0}' "Animal_Experiments_Sequences_v4.csv" | while IFS=',' read -r col1 dataset_name project_name sub_project_name structural_name functional_name _
+awk -F ',' 'NR=3 {print $0}' "Animal_Experiments_Sequences_v4.csv" | while IFS=',' read -r col1 dataset_name project_name sub_project_name structural_name functional_name _
 do
     # Trim any extra whitespace
     project_name=$(echo "$project_name" | xargs)
@@ -59,23 +59,24 @@ do
         CHECK_FILE_EXISTENCE "$Path_Analysed_Data/$run_number$SequenceName"
         cd $Path_Analysed_Data/$run_number''$SequenceName
         
-        BRUKER_to_NIFTI $datapath $run_number $datapath/$run_number/method
+        run_if_missing "G1_cp.nii.gz" -- BRUKER_to_NIFTI "$datapath" "$run_number" "$datapath/$run_number/method"
+        # BRUKER_to_NIFTI "$datapath" "$run_number" "$datapath/$run_number/method"
         echo "This data is acquired using $SequenceName"
 
-        log_function_execution "$LOG_DIR" "Motion Correction using AFNI executed on Run Number $run_number acquired using $SequenceName"|| exit 1
-        MOTION_CORRECTION $MiddleVolume G1_cp.nii.gz mc_func
-                    
-        log_function_execution "$LOG_DIR" "Checked for presence of spikes in the data on Run Number $run_number acquired using $SequenceName"|| exit 1
-        CHECK_SPIKES mc_func+orig
+        log_function_execution "$LOG_DIR" "Motion Correction using AFNI executed on Run Number $run_number acquired using $SequenceName" || exit 1
+        run_if_missing "mc_func.nii.gz" "mc_func+orig.HEAD" "mc_func+orig.BRIK" -- MOTION_CORRECTION "$MiddleVolume" G1_cp.nii.gz mc_func
 
-        log_function_execution "$LOG_DIR" "Temporal SNR estimated on Run Number $run_number acquired using $SequenceName"|| exit 1
-        TEMPORAL_SNR_using_AFNI mc_func+orig
+        log_function_execution "$LOG_DIR" "Checked for presence of spikes in the data on Run Number $run_number acquired using $SequenceName" || exit 1
+        run_if_missing "spikecountTC.1D" -- CHECK_SPIKES mc_func+orig
 
-        log_function_execution "$LOG_DIR" "Smoothing using FSL executed on Run Number $run_number acquired using $SequenceName"|| exit 1
-        SMOOTHING_using_FSL mc_func.nii.gz
- 
-        log_function_execution "$LOG_DIR" "Signal Change Map created for Run Number $run_number acquired using $SequenceName"|| exit 1
-        SIGNAL_CHANGE_MAPS mc_func.nii.gz 100 550 $datapath/$run_number 5 5 mean_mc_func.nii.gz
+        log_function_execution "$LOG_DIR" "Temporal SNR estimated on Run Number $run_number acquired using $SequenceName" || exit 1
+        run_if_missing  "tSNR_mc_func.nii.gz" "tSNR_mc_func+orig.HEAD" "tSNR_mc_func+orig.BRIK" -- TEMPORAL_SNR_using_AFNI mc_func+orig
+  
+        log_function_execution "$LOG_DIR" "Smoothing using FSL executed on Run Number $run_number acquired using $SequenceName" || exit 1
+        run_if_missing  "sm_mc_func.nii.gz" -- TSMOOTHING_using_FSL mc_func.nii.gz
+
+        log_function_execution "$LOG_DIR" "Signal Change Map created for Run Number $run_number acquired using $SequenceName" || exit 1
+        run_if_missing "Signal_Change_Map.nii.gz" -- SIGNAL_CHANGE_MAPS mc_func.nii.gz 100 550 "$datapath/$run_number" 5 5 mean_mc_func.nii.gz
 
     fi
 done
