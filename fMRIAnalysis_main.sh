@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #Following script has been made by Naman Jain with following features included in the
 #different version upgrades
@@ -14,10 +14,11 @@ source ./All_functions_to_be_called.sh #converting data from either Bruker or Di
 root_location="/Volumes/pr_ohlendorf/fMRI"
 
 cd $root_location/RawData
-xlsx2csv Animal_Experiments_Sequences.xlsx Animal_Experiments_Sequences.csv
+
+# xlsx2csv Animal_Experiments_Sequences_v2.xlsx Animal_Experiments_Sequences_v2.csv
 
 # Read the CSV file line by line, skipping the header
-awk -F ',' 'NR>1 {print $0}' "Animal_Experiments_Sequences.csv" | while IFS=',' read -r col1 dataset_name project_name sub_project_name structural_name functional_name _
+awk -F ',' 'NR>1 {print $0}' "Animal_Experiments_Sequences_v4.csv" | while IFS=',' read -r col1 dataset_name project_name sub_project_name structural_name functional_name _
 do
     # Trim any extra whitespace
     project_name=$(echo "$project_name" | xargs)
@@ -31,7 +32,7 @@ do
         Path_Raw_Data="$root_location/RawData/$project_name/$sub_project_name"
         Path_Analysed_Data="$root_location/AnalysedData/$project_name/$sub_project_name/$Dataset_Name"
         echo "Processing: $Path_Raw_Data"
-        
+        echo $run_number
         # Add your further processing steps here
 
         datapath=$(find "$Path_Raw_Data" -type d -name "*${Dataset_Name}*" 2>/dev/null)
@@ -74,7 +75,7 @@ do
         SMOOTHING_using_FSL mc_func.nii.gz
  
         log_function_execution "$LOG_DIR" "Signal Change Map created for Run Number $run_number acquired using $SequenceName"|| exit 1
-        SIGNAL_CHANGE_MAPS mc_func.nii.gz 100 500 $datapath/$run_number 5 5 mean_mc_func.nii.gz
+        SIGNAL_CHANGE_MAPS mc_func.nii.gz 100 550 $datapath/$run_number 5 5 mean_mc_func.nii.gz
 
     fi
 done
