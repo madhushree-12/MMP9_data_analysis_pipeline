@@ -18,7 +18,7 @@ cd $root_location/RawData
 # xlsx2csv Animal_Experiments_Sequences_v2.xlsx Animal_Experiments_Sequences_v2.csv
 
 # Read the CSV file line by line, skipping the header
-awk -F ',' 'NR=3 {print $0}' "Animal_Experiments_Sequences_v4.csv" | while IFS=',' read -r col1 dataset_name project_name sub_project_name structural_name functional_name _
+awk -F ',' 'NR>2 {print $0}' "Animal_Experiments_Sequences_v4.csv" | while IFS=',' read -r col1 dataset_name project_name sub_project_name structural_name functional_name _
 do
     # Trim any extra whitespace
     project_name=$(echo "$project_name" | xargs)
@@ -76,7 +76,15 @@ do
         run_if_missing  "sm_mc_func.nii.gz" -- TSMOOTHING_using_FSL mc_func.nii.gz
 
         log_function_execution "$LOG_DIR" "Signal Change Map created for Run Number $run_number acquired using $SequenceName" || exit 1
-        run_if_missing "Signal_Change_Map.nii.gz" -- SIGNAL_CHANGE_MAPS mc_func.nii.gz 100 550 "$datapath/$run_number" 5 5 mean_mc_func.nii.gz
-
+  
+        if [[ "$SequenceName" == *"Localiser"* ]]; then
+            run_if_missing "$datapath/$run_number/Signal_Change_Map.nii.gz" -- \
+            SIGNAL_CHANGE_MAPS mc_func.nii.gz 100 550 "$datapath/$run_number" 5 5 mean_mc_func.nii.gz
+        elif [[ "$SequenceName" == *"FLASH"* ]]; then
+            run_if_missing "$datapath/$run_number/Signal_Change_Map.nii.gz" -- \
+            SIGNAL_CHANGE_MAPS mc_func.nii.gz 5 25 "$datapath/$run_number" 5 5 mean_mc_func.nii.gz
+        else
+            echo "Unknown sequence type: $SequenceName — skipping SIGNAL_CHANGE_MAPS."
+        fi
     fi
 done
